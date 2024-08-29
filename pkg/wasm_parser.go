@@ -113,9 +113,11 @@ func ConvertEventsToCmt(events []tendermintabci.Event) []cometbftabci.Event {
 func convertAttributes(attrs []tendermintabci.EventAttribute) []cometbftabci.EventAttribute {
 	convertedAttrs := make([]cometbftabci.EventAttribute, len(attrs))
 	for i, attr := range attrs {
+		Key := string(attr.Key)
+		Value := string(attr.Value)
 		convertedAttrs[i] = cometbftabci.EventAttribute{
-			Key:   attr.Key,
-			Value: attr.Value,
+			Key:   Key,
+			Value: Value,
 			Index: attr.Index,
 		}
 	}
