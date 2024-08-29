@@ -1,6 +1,6 @@
 module github.com/mapofzones/ibc-wasm-parser
 
-go 1.22
+go 1.20
 
 require github.com/cometbft/cometbft v0.37.0
 
