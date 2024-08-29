@@ -1,4 +1,4 @@
-package parser
+package tests
 
 import (
 	"encoding/json"
@@ -7,11 +7,12 @@ import (
 	"testing"
 
 	cometbftabci "github.com/cometbft/cometbft/abci/types"
+	parser "github.com/mapofzones/ibc-wasm-parser/pkg"
 	tendermintabci "github.com/tendermint/tendermint/abci/types"
 )
 
 func loadEventsFromJson() ([]cometbftabci.Event, []tendermintabci.Event) {
-	data, err := os.ReadFile("events.json")
+	data, err := os.ReadFile("../fixtures/events.json")
 	if err != nil {
 		fmt.Println("Error reading json file:", err)
 		return nil, nil
@@ -46,7 +47,7 @@ func TestExtractIBCTransferFromEvents(t *testing.T) {
 }
 
 func doExtractIBCTransferFromEvents(t *testing.T, jsonData []byte) {
-	ibcTransfers, err := ExtractIBCTransferFromEventsFromJson(0, jsonData)
+	ibcTransfers, err := parser.ExtractIBCTransferFromEventsFromJson(0, jsonData)
 
 	if err != nil {
 		t.Errorf("Error extracting ibc transfers: %v", err)

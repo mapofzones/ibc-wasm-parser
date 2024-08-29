@@ -3,9 +3,6 @@ package parser
 import (
 	"fmt"
 	"strconv"
-
-	cometbftabci "github.com/cometbft/cometbft/abci/types"
-	tendermintabci "github.com/tendermint/tendermint/abci/types"
 )
 
 func ExtractIBCTransferFromEventsFromJson(idx int, jsonData []byte) ([]IBCFromCosmWasm, error) {
@@ -107,29 +104,4 @@ func ExtractIBCTransferFromEvents(idx int, events []Event) ([]IBCFromCosmWasm, e
 		},
 	}, nil
 
-}
-
-func ConvertEventsToCmt(events []tendermintabci.Event) []cometbftabci.Event {
-	convertedEvents := make([]cometbftabci.Event, len(events))
-	for i, event := range events {
-		convertedEvents[i] = cometbftabci.Event{
-			Type:       event.Type,
-			Attributes: convertAttributes(event.Attributes),
-		}
-	}
-	return convertedEvents
-}
-
-func convertAttributes(attrs []tendermintabci.EventAttribute) []cometbftabci.EventAttribute {
-	convertedAttrs := make([]cometbftabci.EventAttribute, len(attrs))
-	for i, attr := range attrs {
-		Key := string(attr.Key)
-		Value := string(attr.Value)
-		convertedAttrs[i] = cometbftabci.EventAttribute{
-			Key:   Key,
-			Value: Value,
-			Index: attr.Index,
-		}
-	}
-	return convertedAttrs
 }
