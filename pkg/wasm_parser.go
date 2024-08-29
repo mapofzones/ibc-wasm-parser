@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strconv"
 
-	abcitypes "github.com/cometbft/cometbft/abci/types"
+	cometbftabci "github.com/cometbft/cometbft/abci/types"
+	tendermintabci "github.com/tendermint/tendermint/abci/types"
 )
 
-func ExtractIBCTransferFromEvents(idx int, events []abcitypes.Event) ([]IBCFromCosmWasm, error) {
+func ExtractIBCTransferFromEvents(idx int, events []cometbftabci.Event) ([]IBCFromCosmWasm, error) {
 	var ibcTransfers []IBCFromCosmWasm
 
 	containsIBCTransfer := false
@@ -25,7 +26,7 @@ func ExtractIBCTransferFromEvents(idx int, events []abcitypes.Event) ([]IBCFromC
 		return ibcTransfers, nil
 	}
 
-	sendPacketEvent := abcitypes.Event{}
+	sendPacketEvent := cometbftabci.Event{}
 
 	for _, event := range events {
 		if event.Type == "send_packet" {
@@ -96,4 +97,27 @@ func ExtractIBCTransferFromEvents(idx int, events []abcitypes.Event) ([]IBCFromC
 		},
 	}, nil
 
+}
+
+func ConvertEventsToCmt(events []tendermintabci.Event) []cometbftabci.Event {
+	convertedEvents := make([]cometbftabci.Event, len(events))
+	for i, event := range events {
+		convertedEvents[i] = cometbftabci.Event{
+			Type:       event.Type,
+			Attributes: convertAttributes(event.Attributes),
+		}
+	}
+	return convertedEvents
+}
+
+func convertAttributes(attrs []tendermintabci.EventAttribute) []cometbftabci.EventAttribute {
+	convertedAttrs := make([]cometbftabci.EventAttribute, len(attrs))
+	for i, attr := range attrs {
+		convertedAttrs[i] = cometbftabci.EventAttribute{
+			Key:   attr.Key,
+			Value: attr.Value,
+			Index: attr.Index,
+		}
+	}
+	return convertedAttrs
 }
