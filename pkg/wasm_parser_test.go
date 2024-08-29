@@ -37,17 +37,16 @@ func loadEventsFromJson() ([]cometbftabci.Event, []tendermintabci.Event) {
 
 func TestExtractIBCTransferFromEvents(t *testing.T) {
 	cometEvents, tendermintEvents := loadEventsFromJson()
+	cometEventsJson, _ := json.MarshalIndent(cometEvents, "", "  ")
+	doExtractIBCTransferFromEvents(t, cometEventsJson)
 
-	doExtractIBCTransferFromEvents(t, cometEvents)
-
-	// convert tendermint cometEvents to comet events
-	cometEventsConverted := ConvertEventsToCmt(tendermintEvents)
-	doExtractIBCTransferFromEvents(t, cometEventsConverted)
+	tendermintEventsJson, _ := json.MarshalIndent(tendermintEvents, "", "  ")
+	doExtractIBCTransferFromEvents(t, tendermintEventsJson)
 
 }
 
-func doExtractIBCTransferFromEvents(t *testing.T, events []cometbftabci.Event) {
-	ibcTransfers, err := ExtractIBCTransferFromEvents(0, events)
+func doExtractIBCTransferFromEvents(t *testing.T, jsonData []byte) {
+	ibcTransfers, err := ExtractIBCTransferFromEventsFromJson(0, jsonData)
 
 	if err != nil {
 		t.Errorf("Error extracting ibc transfers: %v", err)
@@ -92,34 +91,4 @@ func doExtractIBCTransferFromEvents(t *testing.T, events []cometbftabci.Event) {
 		t.Errorf("Expected destination port to be transfer, got %s", ibcTransfer.DestinationPort)
 	}
 
-}
-
-func TestConvertEventsToCmt(t *testing.T) {
-	cometEvents, tendermintEvents := loadEventsFromJson()
-
-	convertedEvents := ConvertEventsToCmt(tendermintEvents)
-
-	if len(convertedEvents) != len(cometEvents) {
-		t.Errorf("Expected %d converted events, got %d", len(cometEvents), len(convertedEvents))
-	}
-
-	for i, event := range convertedEvents {
-		if event.Type != cometEvents[i].Type {
-			t.Errorf("Expected event type to be %s, got %s", cometEvents[i].Type, event.Type)
-		}
-
-		if len(event.Attributes) != len(cometEvents[i].Attributes) {
-			t.Errorf("Expected %d attributes, got %d", len(cometEvents[i].Attributes), len(event.Attributes))
-		}
-
-		for j, attr := range event.Attributes {
-			if attr.Key != cometEvents[i].Attributes[j].Key {
-				t.Errorf("Expected attribute key to be %s, got %s", cometEvents[i].Attributes[j].Key, attr.Key)
-			}
-
-			if attr.Value != cometEvents[i].Attributes[j].Value {
-				t.Errorf("Expected attribute value to be %s, got %s", cometEvents[i].Attributes[j].Value, attr.Value)
-			}
-		}
-	}
 }

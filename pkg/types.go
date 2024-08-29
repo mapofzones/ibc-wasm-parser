@@ -48,3 +48,24 @@ func (pa PacketAttributes) toPacketData() (PacketData, error) {
 
 	return packetData, nil
 }
+
+type EventAttribute struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+	Index bool   `json:"index"`
+}
+
+// Event represents an event with a type and a list of attributes
+type Event struct {
+	Type       string           `json:"type"`
+	Attributes []EventAttribute `json:"attributes"`
+}
+
+func ParseEvents(jsonData []byte) ([]Event, error) {
+	var events []Event
+	err := json.Unmarshal(jsonData, &events)
+	if err != nil {
+		return nil, err
+	}
+	return events, nil
+}

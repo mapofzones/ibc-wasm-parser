@@ -8,7 +8,17 @@ import (
 	tendermintabci "github.com/tendermint/tendermint/abci/types"
 )
 
-func ExtractIBCTransferFromEvents(idx int, events []cometbftabci.Event) ([]IBCFromCosmWasm, error) {
+func ExtractIBCTransferFromEventsFromJson(idx int, jsonData []byte) ([]IBCFromCosmWasm, error) {
+	events, error := ParseEvents(jsonData)
+	if error != nil {
+		return nil, fmt.Errorf("failed to parse events: %w", error)
+	}
+
+	return ExtractIBCTransferFromEvents(idx, events)
+}
+
+func ExtractIBCTransferFromEvents(idx int, events []Event) ([]IBCFromCosmWasm, error) {
+
 	var ibcTransfers []IBCFromCosmWasm
 
 	containsIBCTransfer := false
@@ -26,7 +36,7 @@ func ExtractIBCTransferFromEvents(idx int, events []cometbftabci.Event) ([]IBCFr
 		return ibcTransfers, nil
 	}
 
-	sendPacketEvent := cometbftabci.Event{}
+	sendPacketEvent := Event{}
 
 	for _, event := range events {
 		if event.Type == "send_packet" {
