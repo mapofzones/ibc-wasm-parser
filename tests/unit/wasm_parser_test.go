@@ -38,23 +38,20 @@ func loadEventsFromJson(fileName string) ([]cometbftabci.Event, []tendermintabci
 }
 
 func TestExtractIBCTransferFromEvents(t *testing.T) {
-	mapFiles := []map[string]interface{}{
-		{"fileName": "events_with_msg_index.json", "ignoreMsgIndex": false},
-		{"fileName": "events_without_msg_index.json", "ignoreMsgIndex": true},
-	}
+	files := []string{"events_without_msg_index.json", "events_with_msg_index.json"}
 
-	for _, file := range mapFiles {
-		cometEvents, tendermintEvents := loadEventsFromJson(file["fileName"].(string))
+	for idx, file := range files {
+		cometEvents, tendermintEvents := loadEventsFromJson(file)
 		cometEventsJson, _ := json.MarshalIndent(cometEvents, "", "  ")
-		doExtractIBCTransferFromEvents(t, cometEventsJson, file["ignoreMsgIndex"].(bool))
+		doExtractIBCTransferFromEvents(t, idx-1, cometEventsJson)
 		tendermintEventsJson, _ := json.MarshalIndent(tendermintEvents, "", "  ")
-		doExtractIBCTransferFromEvents(t, tendermintEventsJson, file["ignoreMsgIndex"].(bool))
+		doExtractIBCTransferFromEvents(t, idx-1, tendermintEventsJson)
 	}
 
 }
 
-func doExtractIBCTransferFromEvents(t *testing.T, jsonData []byte, ignoreMsgIndex bool) {
-	ibcTransfers, err := parser.ExtractIBCTransferFromEventsFromJson(0, jsonData, ignoreMsgIndex)
+func doExtractIBCTransferFromEvents(t *testing.T, idx int, jsonData []byte) {
+	ibcTransfers, err := parser.ExtractIBCTransferFromEventsFromJson(idx, jsonData)
 
 	if err != nil {
 		t.Errorf("Error extracting ibc transfers: %v", err)

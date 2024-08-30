@@ -5,16 +5,16 @@ import (
 	"strconv"
 )
 
-func ExtractIBCTransferFromEventsFromJson(idx int, jsonData []byte, ignoreMsgIndex bool) ([]IBCFromCosmWasm, error) {
+func ExtractIBCTransferFromEventsFromJson(idx int, jsonData []byte) ([]IBCFromCosmWasm, error) {
 	events, error := ParseEvents(jsonData)
 	if error != nil {
 		return nil, fmt.Errorf("failed to parse events: %w", error)
 	}
 
-	return ExtractIBCTransferFromEvents(idx, events, ignoreMsgIndex)
+	return ExtractIBCTransferFromEvents(idx, events)
 }
 
-func ExtractIBCTransferFromEvents(idx int, events []Event, ignoreMsgIndex bool) ([]IBCFromCosmWasm, error) {
+func ExtractIBCTransferFromEvents(idx int, events []Event) ([]IBCFromCosmWasm, error) {
 
 	var ibcTransfers []IBCFromCosmWasm
 
@@ -22,11 +22,12 @@ func ExtractIBCTransferFromEvents(idx int, events []Event, ignoreMsgIndex bool) 
 
 	for _, event := range events {
 		if event.Type == "send_packet" {
-			if ignoreMsgIndex {
+			if idx < 0 {
 				sendPacketEvents = append(sendPacketEvents, event)
 				continue
 			} else {
 				for _, attr := range event.Attributes {
+					fmt.Println("INDEX=", idx)
 					if attr.Key == "msg_index" && attr.Value == strconv.Itoa(idx) {
 						sendPacketEvents = append(sendPacketEvents, event)
 					}
