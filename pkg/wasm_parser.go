@@ -5,16 +5,16 @@ import (
 	"strconv"
 )
 
-func ExtractIBCTransferFromEventsFromJson(idx int, jsonData []byte) ([]IBCFromCosmWasm, error) {
+func ExtractIBCTransferFromEventsFromJson(idx int, jsonData []byte, ignoreMsgIndex bool) ([]IBCFromCosmWasm, error) {
 	events, error := ParseEvents(jsonData)
 	if error != nil {
 		return nil, fmt.Errorf("failed to parse events: %w", error)
 	}
 
-	return ExtractIBCTransferFromEvents(idx, events)
+	return ExtractIBCTransferFromEvents(idx, events, ignoreMsgIndex)
 }
 
-func ExtractIBCTransferFromEvents(idx int, events []Event) ([]IBCFromCosmWasm, error) {
+func ExtractIBCTransferFromEvents(idx int, events []Event, ignoreMsgIndex bool) ([]IBCFromCosmWasm, error) {
 
 	var ibcTransfers []IBCFromCosmWasm
 
@@ -22,9 +22,14 @@ func ExtractIBCTransferFromEvents(idx int, events []Event) ([]IBCFromCosmWasm, e
 
 	for _, event := range events {
 		if event.Type == "send_packet" {
-			for _, attr := range event.Attributes {
-				if attr.Key == "msg_index" && attr.Value == strconv.Itoa(idx) {
-					sendPacketEvents = append(sendPacketEvents, event)
+			if ignoreMsgIndex {
+				sendPacketEvents = append(sendPacketEvents, event)
+				continue
+			} else {
+				for _, attr := range event.Attributes {
+					if attr.Key == "msg_index" && attr.Value == strconv.Itoa(idx) {
+						sendPacketEvents = append(sendPacketEvents, event)
+					}
 				}
 			}
 		}

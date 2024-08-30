@@ -11,8 +11,9 @@ import (
 	tendermintabci "github.com/tendermint/tendermint/abci/types"
 )
 
-func loadEventsFromJson() ([]cometbftabci.Event, []tendermintabci.Event) {
-	data, err := os.ReadFile("../fixtures/events.json")
+func loadEventsFromJson(fileName string) ([]cometbftabci.Event, []tendermintabci.Event) {
+	filePath := fmt.Sprintf("../fixtures/%s", fileName)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		fmt.Println("Error reading json file:", err)
 		return nil, nil
@@ -37,17 +38,23 @@ func loadEventsFromJson() ([]cometbftabci.Event, []tendermintabci.Event) {
 }
 
 func TestExtractIBCTransferFromEvents(t *testing.T) {
-	cometEvents, tendermintEvents := loadEventsFromJson()
-	cometEventsJson, _ := json.MarshalIndent(cometEvents, "", "  ")
-	doExtractIBCTransferFromEvents(t, cometEventsJson)
+	mapFiles := []map[string]interface{}{
+		{"fileName": "events_with_msg_index.json", "ignoreMsgIndex": false},
+		{"fileName": "events_without_msg_index.json", "ignoreMsgIndex": true},
+	}
 
-	tendermintEventsJson, _ := json.MarshalIndent(tendermintEvents, "", "  ")
-	doExtractIBCTransferFromEvents(t, tendermintEventsJson)
+	for _, file := range mapFiles {
+		cometEvents, tendermintEvents := loadEventsFromJson(file["fileName"].(string))
+		cometEventsJson, _ := json.MarshalIndent(cometEvents, "", "  ")
+		doExtractIBCTransferFromEvents(t, cometEventsJson, file["ignoreMsgIndex"].(bool))
+		tendermintEventsJson, _ := json.MarshalIndent(tendermintEvents, "", "  ")
+		doExtractIBCTransferFromEvents(t, tendermintEventsJson, file["ignoreMsgIndex"].(bool))
+	}
 
 }
 
-func doExtractIBCTransferFromEvents(t *testing.T, jsonData []byte) {
-	ibcTransfers, err := parser.ExtractIBCTransferFromEventsFromJson(0, jsonData)
+func doExtractIBCTransferFromEvents(t *testing.T, jsonData []byte, ignoreMsgIndex bool) {
+	ibcTransfers, err := parser.ExtractIBCTransferFromEventsFromJson(0, jsonData, ignoreMsgIndex)
 
 	if err != nil {
 		t.Errorf("Error extracting ibc transfers: %v", err)
