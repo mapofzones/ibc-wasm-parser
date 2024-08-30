@@ -27,7 +27,6 @@ func ExtractIBCTransferFromEvents(idx int, events []Event) ([]IBCFromCosmWasm, e
 				continue
 			} else {
 				for _, attr := range event.Attributes {
-					fmt.Println("INDEX=", idx)
 					if attr.Key == "msg_index" && attr.Value == strconv.Itoa(idx) {
 						sendPacketEvents = append(sendPacketEvents, event)
 					}
@@ -73,7 +72,7 @@ func ExtractIBCTransferFromEvents(idx int, events []Event) ([]IBCFromCosmWasm, e
 			}
 		}
 
-		if packetAttributes.ConnectionID == "" {
+		if packetAttributes.PacketSrcChannel == "" || packetAttributes.PacketDstChannel == "" {
 			continue
 		}
 
