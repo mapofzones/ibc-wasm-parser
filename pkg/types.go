@@ -46,6 +46,16 @@ func (pa PacketAttributes) toPacketData() (PacketData, error) {
 		return PacketData{}, fmt.Errorf("failed to unmarshal packet data: %w", err)
 	}
 
+	// if amount or denom is empty, return an error
+	if packetData.Amount == "" || packetData.Denom == "" {
+		return PacketData{}, fmt.Errorf("amount or denom is empty")
+	}
+
+	// if sender or receiver is empty, return an error
+	if packetData.Sender == "" || packetData.Receiver == "" {
+		return PacketData{}, fmt.Errorf("sender or receiver is empty")
+	}
+
 	return packetData, nil
 }
 
