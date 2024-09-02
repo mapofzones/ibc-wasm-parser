@@ -1,20 +1,21 @@
 package parser
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strconv"
 )
 
-func ExtractIBCTransferFromEventsFromJson(idx int, jsonData []byte) ([]IBCFromCosmWasm, error) {
+func ExtractIBCTransferFromEventsFromJson(idx int, jsonData []byte, decodeKeys bool, decodeValues bool) ([]IBCFromCosmWasm, error) {
 	events, error := ParseEvents(jsonData)
 	if error != nil {
 		return nil, fmt.Errorf("failed to parse events: %w", error)
 	}
 
-	return ExtractIBCTransferFromEvents(idx, events)
+	return ExtractIBCTransferFromEvents(idx, events, decodeKeys, decodeValues)
 }
 
-func ExtractIBCTransferFromEvents(idx int, events []Event) ([]IBCFromCosmWasm, error) {
+func ExtractIBCTransferFromEvents(idx int, events []Event, decodeKeys bool, decodeValues bool) ([]IBCFromCosmWasm, error) {
 
 	var ibcTransfers []IBCFromCosmWasm
 
@@ -27,8 +28,21 @@ func ExtractIBCTransferFromEvents(idx int, events []Event) ([]IBCFromCosmWasm, e
 				continue
 			} else {
 				for _, attr := range event.Attributes {
-					if attr.Key == "msg_index" && attr.Value == strconv.Itoa(idx) {
-						sendPacketEvents = append(sendPacketEvents, event)
+					attrKey := attr.Key
+
+					if decodeKeys {
+						attrKey = decodeBase64String(attr.Key)
+					}
+
+					if attrKey == "msg_index" {
+						attrValue := attr.Value
+						if decodeValues {
+							attrValue = decodeBase64String(attr.Value)
+						}
+						if attrValue == strconv.Itoa(idx) {
+							sendPacketEvents = append(sendPacketEvents, event)
+						}
+
 					}
 				}
 			}
@@ -42,33 +56,43 @@ func ExtractIBCTransferFromEvents(idx int, events []Event) ([]IBCFromCosmWasm, e
 	for _, sendPacketEvent := range sendPacketEvents {
 		packetAttributes := PacketAttributes{}
 		for _, attr := range sendPacketEvent.Attributes {
-			switch attr.Key {
+			attrKey := attr.Key
+			attrValue := attr.Value
+
+			if decodeKeys {
+				attrKey = decodeBase64String(attr.Key)
+			}
+			if decodeValues {
+				attrValue = decodeBase64String(attr.Value)
+			}
+
+			switch attrKey {
 			case "connection_id":
-				packetAttributes.ConnectionID = attr.Value
+				packetAttributes.ConnectionID = attrValue
 			case "packet_channel_ordering":
-				packetAttributes.PacketChannelOrdering = attr.Value
+				packetAttributes.PacketChannelOrdering = attrValue
 			case "packet_connection":
-				packetAttributes.PacketConnection = attr.Value
+				packetAttributes.PacketConnection = attrValue
 			case "packet_data":
-				packetAttributes.PacketData = attr.Value
+				packetAttributes.PacketData = attrValue
 			case "packet_data_hex":
-				packetAttributes.PacketDataHex = attr.Value
+				packetAttributes.PacketDataHex = attrValue
 			case "packet_dst_channel":
-				packetAttributes.PacketDstChannel = attr.Value
+				packetAttributes.PacketDstChannel = attrValue
 			case "packet_dst_port":
-				packetAttributes.PacketDstPort = attr.Value
+				packetAttributes.PacketDstPort = attrValue
 			case "packet_sequence":
-				packetAttributes.PacketSequence = attr.Value
+				packetAttributes.PacketSequence = attrValue
 			case "packet_src_channel":
-				packetAttributes.PacketSrcChannel = attr.Value
+				packetAttributes.PacketSrcChannel = attrValue
 			case "packet_src_port":
-				packetAttributes.PacketSrcPort = attr.Value
+				packetAttributes.PacketSrcPort = attrValue
 			case "packet_timeout_height":
-				packetAttributes.PacketTimeoutHeight = attr.Value
+				packetAttributes.PacketTimeoutHeight = attrValue
 			case "packet_timeout_timestamp":
-				packetAttributes.PacketTimeoutTimestamp = attr.Value
+				packetAttributes.PacketTimeoutTimestamp = attrValue
 			case "msg_index":
-				packetAttributes.MsgIndex = attr.Value
+				packetAttributes.MsgIndex = attrValue
 			}
 		}
 
@@ -94,4 +118,14 @@ func ExtractIBCTransferFromEvents(idx int, events []Event) ([]IBCFromCosmWasm, e
 	}
 
 	return ibcTransfers, nil
+}
+
+// if it is base64 decode it and return it
+// if not just return the plain string
+func decodeBase64String(str string) string {
+	decoded, err := base64.StdEncoding.DecodeString(str)
+	if err != nil {
+		return str
+	}
+	return string(decoded)
 }
