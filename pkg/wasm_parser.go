@@ -6,95 +6,22 @@ import (
 	"strconv"
 )
 
-func ExtractIBCTransferFromEventsFromJson(idx int, jsonData []byte, decodeKeys bool, decodeValues bool) ([]IBCFromCosmWasm, error) {
-	events, error := ParseEvents(jsonData)
-	if error != nil {
-		return nil, fmt.Errorf("failed to parse events: %w", error)
+func ExtractIBCTransferFromEventsFromJson(idx int, jsonData []byte, decodeKeys, decodeValues bool) ([]IBCFromCosmWasm, error) {
+	events, err := ParseEvents(jsonData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse events: %w", err)
 	}
 
 	return ExtractIBCTransferFromEvents(idx, events, decodeKeys, decodeValues)
 }
 
-func ExtractIBCTransferFromEvents(idx int, events []Event, decodeKeys bool, decodeValues bool) ([]IBCFromCosmWasm, error) {
-
+func ExtractIBCTransferFromEvents(idx int, events []Event, decodeKeys, decodeValues bool) ([]IBCFromCosmWasm, error) {
 	var ibcTransfers []IBCFromCosmWasm
 
-	var sendPacketEvents []Event = make([]Event, 0)
+	sendPacketEvents := filterSendPacketEvents(idx, events, decodeKeys, decodeValues)
 
-	for _, event := range events {
-		if event.Type == "send_packet" {
-			if idx < 0 {
-				sendPacketEvents = append(sendPacketEvents, event)
-				continue
-			} else {
-				for _, attr := range event.Attributes {
-					attrKey := attr.Key
-
-					if decodeKeys {
-						attrKey = decodeBase64String(attr.Key)
-					}
-
-					if attrKey == "msg_index" {
-						attrValue := attr.Value
-						if decodeValues {
-							attrValue = decodeBase64String(attr.Value)
-						}
-						if attrValue == strconv.Itoa(idx) {
-							sendPacketEvents = append(sendPacketEvents, event)
-						}
-
-					}
-				}
-			}
-		}
-	}
-
-	if len(sendPacketEvents) == 0 {
-		return ibcTransfers, nil
-	}
-
-	for _, sendPacketEvent := range sendPacketEvents {
-		packetAttributes := PacketAttributes{}
-		for _, attr := range sendPacketEvent.Attributes {
-			attrKey := attr.Key
-			attrValue := attr.Value
-
-			if decodeKeys {
-				attrKey = decodeBase64String(attr.Key)
-			}
-			if decodeValues {
-				attrValue = decodeBase64String(attr.Value)
-			}
-
-			switch attrKey {
-			case "connection_id":
-				packetAttributes.ConnectionID = attrValue
-			case "packet_channel_ordering":
-				packetAttributes.PacketChannelOrdering = attrValue
-			case "packet_connection":
-				packetAttributes.PacketConnection = attrValue
-			case "packet_data":
-				packetAttributes.PacketData = attrValue
-			case "packet_data_hex":
-				packetAttributes.PacketDataHex = attrValue
-			case "packet_dst_channel":
-				packetAttributes.PacketDstChannel = attrValue
-			case "packet_dst_port":
-				packetAttributes.PacketDstPort = attrValue
-			case "packet_sequence":
-				packetAttributes.PacketSequence = attrValue
-			case "packet_src_channel":
-				packetAttributes.PacketSrcChannel = attrValue
-			case "packet_src_port":
-				packetAttributes.PacketSrcPort = attrValue
-			case "packet_timeout_height":
-				packetAttributes.PacketTimeoutHeight = attrValue
-			case "packet_timeout_timestamp":
-				packetAttributes.PacketTimeoutTimestamp = attrValue
-			case "msg_index":
-				packetAttributes.MsgIndex = attrValue
-			}
-		}
+	for _, event := range sendPacketEvents {
+		packetAttributes := extractPacketAttributes(event.Attributes, decodeKeys, decodeValues)
 
 		if packetAttributes.PacketSrcChannel == "" || packetAttributes.PacketDstChannel == "" {
 			continue
@@ -120,8 +47,83 @@ func ExtractIBCTransferFromEvents(idx int, events []Event, decodeKeys bool, deco
 	return ibcTransfers, nil
 }
 
-// if it is base64 decode it and return it
-// if not just return the plain string
+func filterSendPacketEvents(idx int, events []Event, decodeKeys, decodeValues bool) []Event {
+	var sendPacketEvents []Event
+
+	for _, event := range events {
+		if event.Type != "send_packet" {
+			continue
+		}
+
+		if idx < 0 {
+			sendPacketEvents = append(sendPacketEvents, event)
+			continue
+		}
+
+		for _, attr := range event.Attributes {
+			attrKey := decodeIfNeeded(attr.Key, decodeKeys)
+
+			if attrKey == "msg_index" {
+				attrValue := decodeIfNeeded(attr.Value, decodeValues)
+				if attrValue == strconv.Itoa(idx) {
+					sendPacketEvents = append(sendPacketEvents, event)
+					break
+				}
+			}
+		}
+	}
+
+	return sendPacketEvents
+}
+
+func extractPacketAttributes(attributes []EventAttribute, decodeKeys, decodeValues bool) PacketAttributes {
+	packetAttributes := PacketAttributes{}
+
+	for _, attr := range attributes {
+		attrKey := decodeIfNeeded(attr.Key, decodeKeys)
+		attrValue := decodeIfNeeded(attr.Value, decodeValues)
+
+		switch attrKey {
+		case "connection_id":
+			packetAttributes.ConnectionID = attrValue
+		case "packet_channel_ordering":
+			packetAttributes.PacketChannelOrdering = attrValue
+		case "packet_connection":
+			packetAttributes.PacketConnection = attrValue
+		case "packet_data":
+			packetAttributes.PacketData = attrValue
+		case "packet_data_hex":
+			packetAttributes.PacketDataHex = attrValue
+		case "packet_dst_channel":
+			packetAttributes.PacketDstChannel = attrValue
+		case "packet_dst_port":
+			packetAttributes.PacketDstPort = attrValue
+		case "packet_sequence":
+			packetAttributes.PacketSequence = attrValue
+		case "packet_src_channel":
+			packetAttributes.PacketSrcChannel = attrValue
+		case "packet_src_port":
+			packetAttributes.PacketSrcPort = attrValue
+		case "packet_timeout_height":
+			packetAttributes.PacketTimeoutHeight = attrValue
+		case "packet_timeout_timestamp":
+			packetAttributes.PacketTimeoutTimestamp = attrValue
+		case "msg_index":
+			packetAttributes.MsgIndex = attrValue
+		}
+	}
+
+	return packetAttributes
+}
+
+func decodeIfNeeded(str string, decode bool) string {
+	if decode {
+		return decodeBase64String(str)
+	}
+	return str
+}
+
+// decodeBase64String attempts to decode a string from base64; returns the original string if decoding fails.
 func decodeBase64String(str string) string {
 	decoded, err := base64.StdEncoding.DecodeString(str)
 	if err != nil {

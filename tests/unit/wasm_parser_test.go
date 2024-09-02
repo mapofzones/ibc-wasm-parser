@@ -51,7 +51,7 @@ func TestExtractIBCTransferFromEvents(t *testing.T) {
 }
 
 func doExtractIBCTransferFromEvents(t *testing.T, idx int, jsonData []byte) {
-	ibcTransfers, err := parser.ExtractIBCTransferFromEventsFromJson(idx, jsonData)
+	ibcTransfers, err := parser.ExtractIBCTransferFromEventsFromJson(idx, jsonData, false, false)
 
 	if err != nil {
 		t.Errorf("Error extracting ibc transfers: %v", err)
